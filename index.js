@@ -1,4 +1,11 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js");
+const {
+  Client,
+  GatewayIntentBits,
+  SlashCommandBuilder,
+  REST,
+  Routes
+} = require("discord.js");
+
 const { Manager } = require("erela.js");
 
 const TOKEN = process.env.TOKEN;
@@ -12,6 +19,7 @@ const client = new Client({
   ]
 });
 
+// ===== LAVALINK MANAGER =====
 const manager = new Manager({
   nodes: [
     {
@@ -27,6 +35,20 @@ const manager = new Manager({
   }
 });
 
+// ===== DEBUG EVENTS =====
+manager.on("nodeConnect", () => {
+  console.log("✅ Lavalink Connected");
+});
+
+manager.on("nodeError", (node, error) => {
+  console.log("❌ Lavalink Error:", error);
+});
+
+manager.on("trackStart", (player, track) => {
+  const channel = client.channels.cache.get(player.textChannel);
+  if (channel) channel.send(`🎵 Now Playing: **${track.title}**`);
+});
+
 client.once("clientReady", () => {
   console.log(`Login sebagai ${client.user.tag}`);
   manager.init(client.user.id);
@@ -35,7 +57,7 @@ client.once("clientReady", () => {
 client.on("raw", (d) => manager.updateVoiceState(d));
 
 
-// REGISTER SLASH COMMAND
+// ===== SLASH COMMAND REGISTER =====
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
@@ -60,7 +82,7 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 })();
 
 
-// COMMAND HANDLER
+// ===== COMMAND HANDLER =====
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -84,13 +106,13 @@ client.on("interactionCreate", async interaction => {
     );
 
     if (res.loadType === "NO_MATCHES")
-      return interaction.reply("Lagu tidak ditemukan.");
+      return interaction.reply("❌ Lagu tidak ditemukan.");
 
     player.queue.add(res.tracks[0]);
 
     if (!player.playing) player.play();
 
-    interaction.reply(`🎵 Memutar: ${res.tracks[0].title}`);
+    interaction.reply(`🔍 Mencari lagu...`);
   }
 
   if (interaction.commandName === "stop") {
